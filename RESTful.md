@@ -33,6 +33,28 @@ Created by **Dave Winer** and Microsoft.
 - Used **XML to encode method names and parameters**
 - Platform-independent
 
+XML-RPC Payload may look like:  
+```xml
+<?xml version="1.0"?>
+<methodCall>
+  <methodName>createUser</methodName>
+  <params>
+    <param>
+      <value><string>admin</string></value>
+    </param>
+    <param>
+      <value><string>API Admin</string></value>
+    </param>
+    <param>
+      <value><string>x@y.com</string></value>
+    </param>
+    <param>
+      <value><string>9876543210</string></value>
+    </param>
+  </params>
+</methodCall>
+```
+
 **Pros:**
 - Simpler than CORBA and traditional RPC
 
@@ -53,6 +75,43 @@ SOAP introduced:
 | XML Envelope | Strict message structure |
 | WSDL | Machine-declared service contracts |
 | WS-* Standards | Security, transactions, reliability |
+
+SOAP WSDL may look like:   
+```xml
+<definitions ...>
+  <portType name="UserService">
+    <operation name="CreateUser">
+      <input message="tns:CreateUserRequest"/>
+      <output message="tns:CreateUserResponse"/>
+    </operation>
+  </portType>
+</definitions>
+```
+
+SOAP Payload may look like:  
+```xml
+POST /UserService HTTP/1.1
+Host: api.example.com
+Content-Type: text/xml; charset=utf-8
+SOAPAction: "http://example.com/user-service/CreateUser"
+
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope 
+    xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+    xmlns:usr="http://example.com/user-service">
+    
+   <soapenv:Header/>
+   
+   <soapenv:Body>
+      <usr:CreateUserRequest>
+         <usr:UserName>admin</usr:UserName>
+         <usr:FullName>API Admin</usr:FullName>
+         <usr:Email>x@y.com</usr:Email>
+         <usr:Mobile>9876543210</usr:Mobile>
+      </usr:CreateUserRequest>
+   </soapenv:Body>
+</soapenv:Envelope>
+```
 
 **Strengths:**
 ✔ Enterprise-grade  
