@@ -49,13 +49,28 @@ public sealed class UserService
         return users.Select(ToDto).ToList();
     }
 
-    public async Task<IReadOnlyList<UserDto>> GetPagedAsync(int skip, int take, CancellationToken ct = default)
+    // 👇 CHANGED: now returns PagedResult<UserDto>
+    public async Task<PagedResult<UserDto>> GetPagedAsync(int skip, int take, CancellationToken ct = default)
     {
         var users = await _repository.GetPagedAsync(skip, take, ct);
-        return users.Select(ToDto).ToList();
+        var totalCount = await _repository.GetTotalCountAsync(ct);
+
+        var items = users.Select(ToDto).ToList();
+
+        return new PagedResult<UserDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Skip = skip,
+            Take = take
+        };
     }
 
-    public async Task<IReadOnlyList<UserDto>> GetFilteredAsync(UserFilterRequest filter, bool paged, CancellationToken ct = default)
+    // Existing filtered method (no paging OR paging via flag)
+    public async Task<IReadOnlyList<UserDto>> GetFilteredAsync(
+        UserFilterRequest filter,
+        bool paged,
+        CancellationToken ct = default)
     {
         var users = await _repository.GetFilteredAsync(
             filter.UserName,
@@ -67,6 +82,41 @@ public sealed class UserService
             ct);
 
         return users.Select(ToDto).ToList();
+    }
+
+    // 👇 NEW: filtered + paged, with metadata
+    public async Task<PagedResult<UserDto>> GetFilteredPagedAsync(
+        UserFilterRequest filter,
+        CancellationToken ct = default)
+    {
+        var users = await _repository.GetFilteredAsync(
+            filter.UserName,
+            filter.Role,
+            filter.EmailId,
+            filter.MobileNum,
+            filter.Skip,
+            filter.Take,
+            ct);
+
+        var totalCount = await _repository.GetFilteredCountAsync(
+            filter.UserName,
+            filter.Role,
+            filter.EmailId,
+            filter.MobileNum,
+            ct);
+
+        var items = users.Select(ToDto).ToList();
+
+        var skip = filter.Skip ?? 0;
+        var take = filter.Take ?? items.Count;
+
+        return new PagedResult<UserDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Skip = skip,
+            Take = take
+        };
     }
 
     public async Task<UserDto> CreateAsync(CreateUserRequest request, CancellationToken ct = default)
@@ -142,7 +192,11 @@ public sealed class UserService
         return true;
     }
 
-    public async Task<UserDto?> UpdateProfileFieldAsync(long id, string fieldName, string value, CancellationToken ct = default)
+    public async Task<UserDto?> UpdateProfileFieldAsync(
+        long id,
+        string fieldName,
+        string value,
+        CancellationToken ct = default)
     {
         var user = await _repository.GetByIdAsync(id, ct);
         if (user is null)

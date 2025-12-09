@@ -50,10 +50,10 @@ public static class UsersEndpoints
             CancellationToken ct) =>
         {
             var s = skip.GetValueOrDefault(0);
-            var t = take.GetValueOrDefault(50);
+            var t = take.GetValueOrDefault(10); // default page size 10
 
-            var users = await service.GetPagedAsync(s, t, ct);
-            return Results.Ok(users);
+            var result = await service.GetPagedAsync(s, t, ct);
+            return Results.Ok(result);
         });
 
         // 4. Get all users (no paging) - GET /api/users/all
@@ -86,8 +86,8 @@ public static class UsersEndpoints
                 Take = take
             };
 
-            var users = await service.GetFilteredAsync(filter, paged: true, ct);
-            return Results.Ok(users);
+            var result = await service.GetFilteredPagedAsync(filter, ct);
+            return Results.Ok(result);
         });
 
         // 6. Filtered users (no paging) - GET /api/users/filter/all?field=value...

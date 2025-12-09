@@ -29,7 +29,10 @@ public sealed class UserRepository : IUserRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IReadOnlyList<User>> GetPagedAsync(int skip, int take, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<User>> GetPagedAsync(
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
     {
         return await _dbContext.Users
             .AsNoTracking()
@@ -91,7 +94,10 @@ public sealed class UserRepository : IUserRepository
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    public Task<bool> UserNameExistsAsync(string userName, long? excludeUserId = null, CancellationToken cancellationToken = default)
+    public Task<bool> UserNameExistsAsync(
+        string userName,
+        long? excludeUserId = null,
+        CancellationToken cancellationToken = default)
     {
         var query = _dbContext.Users.AsQueryable()
             .Where(u => u.UserName == userName);
@@ -100,5 +106,36 @@ public sealed class UserRepository : IUserRepository
             query = query.Where(u => u.Id != excludeUserId.Value);
 
         return query.AnyAsync(cancellationToken);
+    }
+
+    // 👇 NEW: count all users (for /api/users paged)
+    public Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Users.CountAsync(cancellationToken);
+    }
+
+    // 👇 NEW: count filtered users (for /api/users/filter paged)
+    public Task<int> GetFilteredCountAsync(
+        string? userName,
+        string? role,
+        string? emailId,
+        string? mobileNum,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Users.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(userName))
+            query = query.Where(u => u.UserName.Contains(userName));
+
+        if (!string.IsNullOrWhiteSpace(role))
+            query = query.Where(u => u.Role.ToString() == role);
+
+        if (!string.IsNullOrWhiteSpace(emailId))
+            query = query.Where(u => u.EmailId.Contains(emailId));
+
+        if (!string.IsNullOrWhiteSpace(mobileNum))
+            query = query.Where(u => u.MobileNum.Contains(mobileNum));
+
+        return query.CountAsync(cancellationToken);
     }
 }
