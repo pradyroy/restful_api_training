@@ -157,7 +157,7 @@ public static class UsersEndpoints
             }
 
             return Results.Ok(updated);
-        });
+        }).DisableAntiforgery();
 
         // 9. Delete user - DELETE /api/users/id/{id}
         group.MapDelete("/id/{id:long}", async (
