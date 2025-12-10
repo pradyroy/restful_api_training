@@ -108,13 +108,11 @@ public sealed class UserRepository : IUserRepository
         return query.AnyAsync(cancellationToken);
     }
 
-    // 👇 NEW: count all users (for /api/users paged)
     public Task<int> GetTotalCountAsync(CancellationToken cancellationToken = default)
     {
         return _dbContext.Users.CountAsync(cancellationToken);
     }
 
-    // 👇 NEW: count filtered users (for /api/users/filter paged)
     public Task<int> GetFilteredCountAsync(
         string? userName,
         string? role,
@@ -137,5 +135,12 @@ public sealed class UserRepository : IUserRepository
             query = query.Where(u => u.MobileNum.Contains(mobileNum));
 
         return query.CountAsync(cancellationToken);
+    }
+
+    public Task<User?> GetByUserNameAsync(string userName, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.UserName == userName, cancellationToken);
     }
 }

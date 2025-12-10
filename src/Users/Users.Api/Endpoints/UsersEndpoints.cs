@@ -11,7 +11,11 @@ public static class UsersEndpoints
     {
         var group = app.MapGroup("/api/users");
 
+        // Require a valid JWT for ALL user endpoints
+        group.RequireAuthorization();
+
         // 1. Create user  - POST /api/users
+        // Admin-only: creating users is a privileged operation
         group.MapPost("/", async (
             [FromBody] CreateUserRequest request,
             [FromServices] UserService service,
@@ -30,9 +34,11 @@ public static class UsersEndpoints
             {
                 return Results.Conflict(new { message = ex.Message });
             }
-        });
+        })
+        .RequireAuthorization("AdminOnly");
 
         // 2. Get user by ID - GET /api/users/id/{id}
+        // Any authenticated user (Admin or read_only) can view
         group.MapGet("/id/{id:long}", async (
             long id,
             [FromServices] UserService service,
@@ -112,6 +118,7 @@ public static class UsersEndpoints
         });
 
         // 7. Update user - PUT /api/users/id/{id}
+        // Admin-only: updating user details is privileged
         group.MapPut("/id/{id:long}", async (
             long id,
             [FromBody] UpdateUserRequest request,
@@ -120,9 +127,11 @@ public static class UsersEndpoints
         {
             var updated = await service.UpdateAsync(id, request, ct);
             return updated is null ? Results.NotFound() : Results.Ok(updated);
-        });
+        })
+        .RequireAuthorization("AdminOnly");
 
         // 8. Upload profile picture (generic) - POST /api/users/id/{id}/upload
+        // Admin-only for demo (you can relax this later if needed)
         group.MapPost("/id/{id:long}/upload", async (
             long id,
             IFormFile file,
@@ -157,9 +166,12 @@ public static class UsersEndpoints
             }
 
             return Results.Ok(updated);
-        }).DisableAntiforgery();
+        })
+        .RequireAuthorization("AdminOnly")
+        .DisableAntiforgery();
 
         // 9. Delete user - DELETE /api/users/id/{id}
+        // Admin-only: deleting users is privileged
         group.MapDelete("/id/{id:long}", async (
             long id,
             [FromServices] UserService service,
@@ -167,7 +179,8 @@ public static class UsersEndpoints
         {
             var success = await service.DeleteAsync(id, ct);
             return success ? Results.NoContent() : Results.NotFound();
-        });
+        })
+        .RequireAuthorization("AdminOnly");
 
         return app;
     }

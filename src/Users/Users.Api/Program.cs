@@ -1,6 +1,11 @@
 using Users.Api.Endpoints;
 using Users.Application.DependencyInjection;  // Application layer DI
-// No explicit using for Infrastructure DI needed because of the shared namespace
+
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Users.Api;                 // for JwtSettings
+using Users.Application.Auth;    // for IAuthService
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +21,50 @@ builder.Services.AddSwaggerGen();
 // Register layered architecture services
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// -------- JWT + Auth configuration (NEW) --------
+
+// Bind Jwt settings so we can inject IOptions<JwtSettings> into endpoints
+builder.Services.Configure<JwtSettings>(
+    builder.Configuration.GetSection("Jwt"));
+
+// Also bind once here to read values for token validation
+var jwtSettings = new JwtSettings();
+builder.Configuration.GetSection("Jwt").Bind(jwtSettings);
+
+var keyBytes = Encoding.UTF8.GetBytes(jwtSettings.Key);
+
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = false; // DEMO only; enable in prod with HTTPS
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            ValidateLifetime = true,
+            ValidIssuer = jwtSettings.Issuer,
+            ValidAudience = jwtSettings.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+            ClockSkew = TimeSpan.FromMinutes(1)
+        };
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    // Simple demo policy for Admin-only endpoints
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole("Admin"));
+});
+
+// ------------------------------------------------
 
 var app = builder.Build();
 
@@ -33,8 +82,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Register Minimal API endpoints for users
-app.MapUsersEndpoints();
+// NEW: plug in auth middlewares
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Register Minimal API endpoints for auth + users
+app.MapAuthEndpoints();   // POST /api/auth/login
+app.MapUsersEndpoints();  // /api/users/* (secured inside UsersEndpoints.cs)
 
 // Template feature: Weather endpoint
 var summaries = new[]

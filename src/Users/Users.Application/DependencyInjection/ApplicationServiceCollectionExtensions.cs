@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Users.Application.Users.Services;
+using Users.Application.Auth;
 
 namespace Users.Application.DependencyInjection;
 
@@ -9,6 +10,7 @@ public static class ApplicationServiceCollectionExtensions
     {
         // Register application layer services
         services.AddScoped<UserService>();
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }

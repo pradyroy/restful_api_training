@@ -43,4 +43,6 @@ public interface IUserRepository
         string? emailId,
         string? mobileNum,
         CancellationToken cancellationToken = default);
+    
+    Task<User?> GetByUserNameAsync(string userName, CancellationToken cancellationToken = default);
 }
