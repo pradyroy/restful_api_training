@@ -1,11 +1,12 @@
-using Users.Api.Endpoints;
-using Users.Application.DependencyInjection;  // Application layer DI
-
 using System.Text;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Users.Api;                 // for JwtSettings
+using Users.Api.Auth;            // for BasicAuthenticationHandler
+using Users.Api.Endpoints;
 using Users.Application.Auth;    // for IAuthService
+using Users.Application.DependencyInjection;  // Application layer DI
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +38,7 @@ var keyBytes = Encoding.UTF8.GetBytes(jwtSettings.Key);
 builder.Services
     .AddAuthentication(options =>
     {
+        // Keep JWT as default so existing endpoints remain unchanged
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     })
@@ -55,13 +57,21 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
             ClockSkew = TimeSpan.FromMinutes(1)
         };
-    });
+    })
+    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>(
+        "Basic",
+        _ => { });
 
 builder.Services.AddAuthorization(options =>
 {
     // Simple demo policy for Admin-only endpoints
     options.AddPolicy("AdminOnly", policy =>
         policy.RequireRole("Admin"));
+
+    // Basic-auth-only demo policy (used only for /api/auth/basic-demo)
+    options.AddPolicy("BasicOnly", policy =>
+        policy.AddAuthenticationSchemes("Basic")
+              .RequireAuthenticatedUser());
 });
 
 // ------------------------------------------------

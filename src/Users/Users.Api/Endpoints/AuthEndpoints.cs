@@ -16,6 +16,8 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/api/auth");
 
+        // ---------------- JWT LOGIN ----------------
+
         group.MapPost("/login", async (
             [FromBody] LoginRequest request,
             IAuthService authService,
@@ -51,8 +53,24 @@ public static class AuthEndpoints
         .WithName("Login")
         .WithSummary("Authenticate user and return JWT token");
 
+        // ---------------- BASIC AUTH DEMO ----------------
+
+        group.MapGet("/basic-demo", demoBasicAuth)
+            .RequireAuthorization("BasicOnly")
+            .WithName("BasicAuthDemo")
+            .WithSummary("Basic Auth demo endpoint (returns a simple message)");
+
         return app;
     }
+
+    // -------- BASIC AUTH DEMO METHOD --------
+
+    private static string demoBasicAuth()
+    {
+        return "Hello Basic Auth";
+    }
+
+    // -------- JWT TOKEN GENERATION --------
 
     private static string GenerateJwtToken(
         long userId,

@@ -1,6 +1,38 @@
 @Users.Api_HostAddress = http://localhost:5117
 
-GET {{Users.Api_HostAddress}}/weatherforecast/
+### Public – no authentication
+GET {{Users.Api_HostAddress}}/weatherforecast
 Accept: application/json
 
 ###
+
+### JWT Login (get token)
+POST {{Users.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userName": "REPLACE_WITH_VALID_USERNAME",
+  "password": "REPLACE_WITH_VALID_PASSWORD"
+}
+
+###
+
+### Basic Auth demo endpoint
+# NOTE:
+# This endpoint requires HTTP Basic Authentication.
+# Use Postman and set:
+# Authorization → Type = Basic Auth
+# Username = <valid DB username>
+# Password = <valid DB password>
+GET {{Users.Api_HostAddress}}/api/auth/basic-demo
+Accept: text/plain
+
+###
+
+### JWT-protected endpoint (example)
+# NOTE:
+# Use Postman and set:
+# Authorization → Type = Bearer Token
+# Token = <JWT returned from /api/auth/login>
+GET {{Users.Api_HostAddress}}/api/users
+Accept: application/json
